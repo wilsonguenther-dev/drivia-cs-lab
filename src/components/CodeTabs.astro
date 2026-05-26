@@ -1,0 +1,26 @@
+---
+interface CodeSample { lang: string; label: string; src: string; }
+interface Props { samples?: CodeSample[]; index: number; }
+const { samples, index } = Astro.props;
+---
+{samples && samples.length > 0 && (
+  <div class="codetabs" id={`code-${index}`}>
+    <div class="tabs">
+      {samples.map((s, i) => (
+        <button class={`tab ${i === 0 ? "active" : ""}`} data-act="code-pick" data-idx={index} data-pick={i}>{s.label}</button>
+      ))}
+    </div>
+    {samples.map((s, i) => (
+      <pre class={`src ${i === 0 ? "active" : ""}`} data-pick={i}><code>{s.src}</code></pre>
+    ))}
+  </div>
+)}
+<style>
+.codetabs{margin-top:14px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tab{background:transparent;color:var(--muted);border:1px solid var(--line);border-bottom:none;font:700 10px/1 var(--mono);letter-spacing:.1em;padding:7px 12px;cursor:pointer;text-transform:uppercase}
+.tab.active{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,.06)}
+.tab:hover{color:var(--accent)}
+.src{display:none;margin:0;padding:14px 16px;background:#04050f;color:#dde2ff;border:1px solid var(--line);border-top:none;font:500 13px/1.55 var(--mono);white-space:pre;overflow-x:auto}
+.src.active{display:block}
+</style>

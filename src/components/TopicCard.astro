@@ -1,0 +1,148 @@
+---
+import katex from "katex";
+import type { CSTopic } from "../data/cs";
+import SpeakBack, { type SpeakBackTarget } from "./SpeakBack.astro";
+import Citations from "./Citations.astro";
+import CodeTabs from "./CodeTabs.astro";
+import VideoCards from "./VideoCards.astro";
+
+interface Props { topic: CSTopic; index: number; total: number; }
+const { topic: t, index, total } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+// SSR-render formal statement so it paints without JS
+const formalHtml = t.formal
+  ? katex.renderToString(t.formal, { displayMode: true, throwOnError: false, strict: "ignore" })
+  : "";
+
+// Steps math also SSR-rendered up front
+const stepsRendered = (t.steps || []).map((s) => ({
+  ...s,
+  mathHtml: s.math ? katex.renderToString(s.math, { displayMode: true, throwOnError: false, strict: "ignore" }) : "",
+}));
+
+const speakTargets: SpeakBackTarget[] = [
+  { label: "Name", text: t.title },
+  { label: "Plain English", text: t.plain },
+  ...(t.pronunciation ? [{ label: "Pronunciation", text: t.pronunciation }] : []),
+  ...(t.analogy ? [{ label: "Analogy", text: t.analogy }] : []),
+];
+
+const tierColor: Record<string, string> = { undergrad: "accent", grad: "accent-warm", research: "accent-warn" };
+---
+
+<section class="card" id={`t${index}`} data-idx={index} data-slug={t.slug}>
+  <div class="t-meta">
+    <span class="t-num">Topic {pad(index + 1)} · {index + 1} of {total}</span>
+    <span class={`t-tier tier-${tierColor[t.difficulty]}`}>{t.difficulty}</span>
+  </div>
+  <h2 class="t-title">{t.title}</h2>
+
+  {t.videos && t.videos.length > 0 && (
+    <div class="sec sec-video-top">
+      <div class="sec-lbl">▶ Watch first — set the context before you drill in</div>
+      <VideoCards videos={t.videos} />
+    </div>
+  )}
+
+  {formalHtml && (
+    <div class="sec">
+      <div class="sec-lbl">Formal statement</div>
+      <div class="t-math" id={`math-${index}`} set:html={formalHtml}></div>
+    </div>
+  )}
+
+  {stepsRendered.length > 0 && (
+    <div class="anim-strip">
+      <button class="anim-btn primary" data-act="anim" data-idx={index}>▶ ANIMATE + NARRATE</button>
+      <button class="anim-btn" data-act="anim-replay" data-idx={index}>🔊 REPLAY STEP</button>
+      <button class="anim-btn" data-act="anim-stop" data-idx={index}>■ STOP</button>
+      <button class="anim-btn" data-act="anim-reset" data-idx={index}>↺ RESET</button>
+      <div class="dots" id={`dots-${index}`}>
+        {stepsRendered.map((_, i) => <button class="dot" data-act="anim-jump" data-idx={index} data-step={i} title={`Jump to step ${i + 1}`}></button>)}
+      </div>
+      <div class="narr" id={`narr-${index}`}>click ANIMATE — Kokori narrates each step as it appears</div>
+      <script type="application/json" id={`steps-${index}`} set:html={JSON.stringify(stepsRendered.map((s) => ({ math: s.math, mathHtml: s.mathHtml, text: s.text })))}></script>
+    </div>
+  )}
+
+  <div class="ctrls">
+    <button class="btn primary" data-act="hear" data-idx={index}>▶ Hear it</button>
+    <button class="btn" data-act="mark" data-idx={index}>✓ Mark mastered</button>
+    <div class="status" id={`st-${index}`}>ready</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-lbl">Plain English</div>
+    <p class="prose">{t.plain}</p>
+  </div>
+
+  {t.history && (
+    <div class="sec sec-history">
+      <div class="sec-lbl">History</div>
+      <p class="prose">{t.history}</p>
+    </div>
+  )}
+
+  {t.analogy && (
+    <div class="sec">
+      <div class="sec-lbl">Analogy</div>
+      <p class="prose">{t.analogy}</p>
+    </div>
+  )}
+
+  {t.example && (
+    <div class="sec sec-example">
+      <div class="sec-lbl">Example</div>
+      <p class="prose">{t.example}</p>
+    </div>
+  )}
+
+  {t.code && t.code.length > 0 && (
+    <div class="sec">
+      <div class="sec-lbl">In code</div>
+      <CodeTabs samples={t.code} index={index} />
+    </div>
+  )}
+
+  <Citations papers={t.papers} reading={t.reading} />
+
+  <SpeakBack index={index} targets={speakTargets} />
+</section>
+
+<style>
+.card{padding:30px 32px;background:var(--panel);border:1px solid var(--line);margin:24px 0;position:relative}
+.card.mastered{border-color:color-mix(in srgb,var(--accent-good) 50%,transparent)}
+.card.mastered::before{content:"✓ MASTERED";position:absolute;top:14px;right:18px;color:var(--accent-good);font:700 9px/1 var(--mono);letter-spacing:.18em}
+.t-meta{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+.t-num{font:600 10px/1 var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+.t-tier{font:700 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;padding:3px 7px;border:1px solid var(--line)}
+.t-tier.tier-accent{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.t-tier.tier-accent-warm{color:var(--accent-warm);border-color:color-mix(in srgb,var(--accent-warm) 50%,transparent)}
+.t-tier.tier-accent-warn{color:var(--accent-warn);border-color:color-mix(in srgb,var(--accent-warn) 50%,transparent)}
+.t-title{font:700 30px/1.1 var(--type);letter-spacing:-.01em;color:var(--ink);margin:0 0 18px}
+.sec{margin:14px 0;padding:14px 16px;border-left:2px solid var(--line);background:rgba(255,255,255,.02)}
+.sec-lbl{font:700 10px/1 var(--type);letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
+.sec.sec-video-top{border-left-color:var(--accent-warn);background:rgba(255,184,0,.04)}
+.sec.sec-video-top .sec-lbl{color:var(--accent-warn)}
+.sec.sec-history{border-left-color:var(--accent-warm);background:rgba(244,114,182,.04)}
+.sec.sec-history .sec-lbl{color:var(--accent-warm)}
+.sec.sec-example{border-left-color:var(--accent-good);background:rgba(4,248,39,.03)}
+.sec.sec-example .sec-lbl{color:var(--accent-good)}
+.prose{font:500 15px/1.6 var(--body);color:var(--ink);margin:0}
+.t-math{font-size:18px;text-align:center;padding:14px 0;color:var(--ink)}
+.ctrls{display:flex;align-items:center;gap:10px;margin:12px 0 4px}
+.btn{background:transparent;color:var(--muted);border:1px solid var(--line);font:700 11px/1 var(--mono);letter-spacing:.08em;padding:8px 14px;cursor:pointer;text-transform:uppercase;transition:all .12s ease}
+.btn.primary{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+.btn:hover{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,.06)}
+.status{font:500 11px/1 var(--mono);color:var(--dim);margin-left:auto}
+.anim-strip{display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(0,212,255,.06);border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);margin:14px 0;flex-wrap:wrap}
+.anim-btn{background:transparent;color:var(--muted);border:1px solid var(--line);font:700 11px/1 var(--mono);letter-spacing:.08em;padding:7px 12px;cursor:pointer;text-transform:uppercase}
+.anim-btn.primary{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,.08)}
+.anim-btn:hover{color:var(--accent);border-color:var(--accent)}
+.dots{display:flex;gap:4px;margin-left:auto}
+.dot{width:14px;height:14px;border:1px solid var(--line);background:transparent;cursor:pointer;border-radius:50%;padding:0}
+.dot.passed{background:var(--accent);border-color:var(--accent)}
+.dot.current{background:var(--accent-warm);border-color:var(--accent-warm);box-shadow:0 0 8px var(--accent-warm)}
+.narr{flex-basis:100%;font:500 12px/1.5 var(--mono);color:var(--muted);padding-top:6px}
+</style>

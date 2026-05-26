@@ -1,0 +1,34 @@
+---
+import type { CSChapter } from "../data/cs";
+import StudyTimer from "./StudyTimer.astro";
+
+interface Props { chapters: CSChapter[]; totalTopics: number; }
+const { chapters, totalTopics } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, "0");
+---
+
+<header class="toprail">
+  <div class="tr-row">
+    <div class="tr-mark"><span class="tr-orb"></span>DRIVIA · CS LAB v1</div>
+    <div class="tr-stats">
+      <StudyTimer />
+      <button class="tr-pill-action audio-stop" data-act="audio-stop" id="g-audio-stop" style="display:none" title="Stop / resume audio (Space)">■ Stop audio</button>
+      <div class="tr-stat"><span class="lbl">Day streak</span><span class="val warn" id="g-day-streak">0🔥</span></div>
+      <div class="tr-stat"><span class="lbl">Mastered</span><span class="val" id="g-mastered">0 / {totalTopics}</span></div>
+    </div>
+  </div>
+  <nav class="tr-pills" id="pills" aria-label="Chapter navigation">
+    {chapters.map((c) => (
+      <a class="tr-pill" id={`pill-${c.index}`} href={`#ch-${c.index}`}>
+        <span class="n">{pad(c.index)}</span>
+        {c.title}
+        <span class="ct">{c.topics.length}</span>
+      </a>
+    ))}
+  </nav>
+</header>
+
+<style>
+.tr-pill .ct{margin-left:6px;font:600 9px/1 var(--mono);color:var(--dim);background:rgba(255,255,255,.04);padding:2px 5px;border-radius:2px}
+.tr-pill.mastered .ct{color:var(--accent-good);background:rgba(4,248,39,.08)}
+</style>

@@ -1,0 +1,194 @@
+---
+/**
+ * TTS backend picker — floating gear button + popover.
+ *
+ * Lets the visitor switch between the 4 TTS backends without editing code:
+ *   • webspeech (default, zero install)
+ *   • supersonic (localhost:8800)
+ *   • kokori (localhost:3000)
+ *   • gemini-baked (pre-rendered WAVs)
+ *
+ * Persists to localStorage under `tts.config.v1`. Reload not required —
+ * the next `speak()` reads fresh config.
+ */
+---
+
+<button id="tts-gear" type="button" title="TTS settings" aria-label="Open TTS settings">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+</button>
+
+<div id="tts-panel" hidden role="dialog" aria-labelledby="tts-panel-title">
+  <header>
+    <h3 id="tts-panel-title">Text-to-speech</h3>
+    <button id="tts-close" type="button" aria-label="Close">×</button>
+  </header>
+
+  <fieldset>
+    <legend>Backend</legend>
+    <label><input type="radio" name="tts-backend" value="webspeech"> Browser (Web Speech) — no install, works everywhere</label>
+    <label><input type="radio" name="tts-backend" value="supersonic"> Supersonic2 — localhost:8800 (best quality, 234MB model)</label>
+    <label><input type="radio" name="tts-backend" value="kokori"> Kokori — localhost:3000 (Kokoro-82M wrapper)</label>
+    <label><input type="radio" name="tts-backend" value="gemini-baked"> Gemini Charon — pre-baked WAVs (run `npm run bake`)</label>
+  </fieldset>
+
+  <div class="tts-row">
+    <label>Supersonic URL <input id="tts-supersonic-url" type="url" placeholder="http://localhost:8800/synthesize" autocomplete="off"></label>
+  </div>
+  <div class="tts-row">
+    <label>Kokori URL <input id="tts-kokori-url" type="url" placeholder="http://localhost:3000/generate" autocomplete="off"></label>
+  </div>
+  <div class="tts-row tts-row-pair">
+    <label>Voice <input id="tts-voice" type="text" placeholder="af_heart" autocomplete="off"></label>
+    <label>Speed <input id="tts-speed" type="number" min="0.5" max="2" step="0.1" value="1.0"></label>
+  </div>
+
+  <div class="tts-actions">
+    <button id="tts-test" type="button">▶ Test current voice</button>
+    <span id="tts-status" aria-live="polite"></span>
+  </div>
+
+  <p class="tts-foot">Setup help → <a href="./TTS.html" target="_blank" rel="noopener">TTS.md</a></p>
+</div>
+
+<style>
+  #tts-gear {
+    position: fixed; bottom: 16px; right: 16px;
+    z-index: 999;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(20, 20, 35, 0.85);
+    color: rgba(220, 230, 250, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  #tts-gear:hover { background: rgba(30, 30, 50, 0.95); transform: rotate(30deg); }
+  #tts-panel {
+    position: fixed; bottom: 64px; right: 16px;
+    z-index: 1000;
+    width: 360px; max-width: calc(100vw - 32px);
+    background: rgba(15, 18, 30, 0.97);
+    color: rgba(220, 230, 250, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  #tts-panel[hidden] { display: none; }
+  #tts-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  #tts-panel h3 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
+  #tts-close { background: none; border: 0; color: rgba(220, 230, 250, 0.6); font-size: 18px; cursor: pointer; padding: 0 4px; }
+  #tts-panel fieldset { border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  #tts-panel legend { padding: 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(220, 230, 250, 0.5); }
+  #tts-panel fieldset label { display: block; padding: 4px 0; cursor: pointer; }
+  .tts-row { margin: 8px 0; }
+  .tts-row label { display: block; font-size: 11px; color: rgba(220, 230, 250, 0.6); }
+  .tts-row input {
+    width: 100%; margin-top: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px; padding: 6px 8px; font: inherit;
+  }
+  .tts-row-pair { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+  .tts-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
+  .tts-actions button { background: rgba(0, 212, 255, 0.15); border: 1px solid rgba(0, 212, 255, 0.4); color: #aef; border-radius: 5px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  .tts-actions button:hover { background: rgba(0, 212, 255, 0.25); }
+  #tts-status { color: rgba(220, 230, 250, 0.6); font-size: 11px; }
+  .tts-foot { margin: 10px 0 0; font-size: 11px; color: rgba(220, 230, 250, 0.5); }
+  .tts-foot a { color: rgba(0, 212, 255, 0.9); }
+</style>
+
+<script>
+  import { getTTSConfig, setTTSConfig, webSpeechSpeak, fetchTTSBlob } from "../lib/tts";
+
+  function syncForm() {
+    const cfg = getTTSConfig();
+    document.querySelectorAll<HTMLInputElement>('input[name="tts-backend"]').forEach((r) => {
+      r.checked = r.value === cfg.backend;
+    });
+    (document.getElementById("tts-supersonic-url") as HTMLInputElement).value = cfg.supersonicUrl;
+    (document.getElementById("tts-kokori-url") as HTMLInputElement).value = cfg.kokoriUrl;
+    (document.getElementById("tts-voice") as HTMLInputElement).value = cfg.voice;
+    (document.getElementById("tts-speed") as HTMLInputElement).value = String(cfg.speed);
+  }
+
+  function setStatus(msg: string) {
+    const el = document.getElementById("tts-status");
+    if (el) el.textContent = msg;
+  }
+
+  function attachListeners() {
+    document.querySelectorAll<HTMLInputElement>('input[name="tts-backend"]').forEach((r) => {
+      r.addEventListener("change", () => {
+        if (!r.checked) return;
+        setTTSConfig({ backend: r.value as any });
+        setStatus(`backend → ${r.value}`);
+      });
+    });
+    const persistText = (id: string, key: "supersonicUrl" | "kokoriUrl" | "voice") => {
+      const el = document.getElementById(id) as HTMLInputElement;
+      el.addEventListener("change", () => {
+        const v = el.value.trim();
+        if (v) setTTSConfig({ [key]: v } as any);
+        setStatus(`${key} saved`);
+      });
+    };
+    persistText("tts-supersonic-url", "supersonicUrl");
+    persistText("tts-kokori-url", "kokoriUrl");
+    persistText("tts-voice", "voice");
+    const speedEl = document.getElementById("tts-speed") as HTMLInputElement;
+    speedEl.addEventListener("change", () => {
+      const v = parseFloat(speedEl.value);
+      if (!isNaN(v)) setTTSConfig({ speed: v });
+      setStatus("speed saved");
+    });
+    document.getElementById("tts-test")!.addEventListener("click", async () => {
+      const cfg = getTTSConfig();
+      setStatus("testing…");
+      const text = "Drivia. The lab works. Speech is wired.";
+      if (cfg.backend === "webspeech") {
+        const h = webSpeechSpeak(text, cfg);
+        await h.ended;
+        setStatus("✓ web speech ok");
+        return;
+      }
+      const blob = await fetchTTSBlob(text);
+      if (!blob) { setStatus(`✗ ${cfg.backend} unreachable`); return; }
+      const u = URL.createObjectURL(blob);
+      const a = new Audio(u);
+      a.onended = () => { URL.revokeObjectURL(u); setStatus(`✓ ${cfg.backend} ok`); };
+      a.play();
+    });
+  }
+
+  function attachUi() {
+    const gear = document.getElementById("tts-gear");
+    const panel = document.getElementById("tts-panel");
+    if (!gear || !panel) return;
+    gear.addEventListener("click", () => {
+      const open = !panel.hasAttribute("hidden");
+      if (open) panel.setAttribute("hidden", "");
+      else { panel.removeAttribute("hidden"); syncForm(); }
+    });
+    document.getElementById("tts-close")!.addEventListener("click", () => panel.setAttribute("hidden", ""));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !panel.hasAttribute("hidden")) panel.setAttribute("hidden", "");
+    });
+    attachListeners();
+  }
+
+  if (typeof window !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", attachUi);
+    } else {
+      attachUi();
+    }
+  }
+</script>

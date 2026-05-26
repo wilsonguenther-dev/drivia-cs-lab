@@ -1,0 +1,65 @@
+---
+import Layout from "../components/Layout.astro";
+import TopRail from "../components/TopRail.astro";
+import TopicCard from "../components/TopicCard.astro";
+import KeyboardHelp from "../components/KeyboardHelp.astro";
+import VideoCards from "../components/VideoCards.astro";
+import { CHAPTERS, TOPICS } from "../data/cs";
+---
+
+<Layout title="Drivia CS Lab v1 · Computer Science, undergrad to PhD">
+  <TopRail chapters={CHAPTERS} totalTopics={TOPICS.length} />
+
+  <section class="hero">
+    <div class="eye">Drivia CS Lab · v1 · undergrad → PhD</div>
+    <h1>Computer science, <em>start to research.</em></h1>
+    <p class="sub">
+      {TOPICS.length} topics across {CHAPTERS.length} chapters. History first, then formal
+      definitions, then code in multiple languages, then citations to the papers that
+      created the field. Watch · Hear · Speak · Master.
+    </p>
+  </section>
+
+  <main>
+    {CHAPTERS.map((c) => (
+      <>
+        <h2 class="chapter-hdr" id={`ch-${c.index}`}>
+          <span class="ch-num">Chapter {String(c.index).padStart(2, "0")}</span>
+          <span class="ch-title">{c.title}</span>
+          {c.era && <span class="ch-era">{c.era}</span>}
+          <span class="ch-blurb">{c.blurb}</span>
+        </h2>
+        {c.videos && c.videos.length > 0 && (
+          <div class="chapter-videos">
+            <div class="sec-lbl">▶ Watch first — chapter intro</div>
+            <VideoCards videos={c.videos} />
+          </div>
+        )}
+        {c.topics.map((t) => {
+          const globalIdx = TOPICS.findIndex((x) => x.slug === t.slug);
+          return <TopicCard topic={t} index={globalIdx} total={TOPICS.length} />;
+        })}
+      </>
+    ))}
+  </main>
+
+  <footer class="site-foot">
+    Drivia CS Lab v1 · Astro 5 · KaTeX 0.16.11 · Kokori on localhost:3000 · {TOPICS.length} topics across {CHAPTERS.length} chapters
+  </footer>
+
+  <KeyboardHelp slot="overlays" />
+</Layout>
+
+<script>
+  import "../scripts/main.ts";
+</script>
+
+<style>
+.chapter-hdr{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin:60px 0 8px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.ch-num{font:700 11px/1 var(--mono);letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+.ch-title{font:700 34px/1.1 var(--type);letter-spacing:-.01em;color:var(--ink);margin:0}
+.ch-era{font:600 11px/1 var(--mono);letter-spacing:.08em;color:var(--accent-warn);text-transform:uppercase;padding:4px 8px;border:1px solid color-mix(in srgb,var(--accent-warn) 35%,transparent)}
+.ch-blurb{flex-basis:100%;font:500 14px/1.6 var(--body);color:var(--muted);margin-top:4px}
+.chapter-videos{margin:0 0 32px;padding:14px 16px;background:rgba(255,184,0,.05);border:1px solid color-mix(in srgb,var(--accent-warn) 30%,transparent);border-left:3px solid var(--accent-warn)}
+.chapter-videos .sec-lbl{font:700 11px/1 var(--type);letter-spacing:.22em;color:var(--accent-warn);text-transform:uppercase;margin-bottom:10px}
+</style>

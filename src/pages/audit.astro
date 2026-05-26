@@ -1,0 +1,57 @@
+---
+import Layout from "../components/Layout.astro";
+import { TOPICS, CHAPTERS } from "../data/cs";
+const totals = {
+  topics: TOPICS.length,
+  chapters: CHAPTERS.length,
+  missingFormal: TOPICS.filter((t) => !t.formal).length,
+  missingPapers: TOPICS.filter((t) => !t.papers || t.papers.length === 0).length,
+  missingHistory: TOPICS.filter((t) => !t.history).length,
+};
+---
+<Layout title="CS Lab · Drift Audit">
+  <main class="audit">
+    <h1>CS Lab · Drift audit</h1>
+    <section class="block">
+      <h2>Build-time</h2>
+      <table>
+        <tbody>
+          <tr><td>Chapters</td><td><b>{totals.chapters}</b></td></tr>
+          <tr><td>Topics</td><td><b>{totals.topics}</b></td></tr>
+          <tr><td>Without formal statement</td><td>{totals.missingFormal}</td></tr>
+          <tr><td>Without seminal papers</td><td>{totals.missingPapers}</td></tr>
+          <tr><td>Without history</td><td>{totals.missingHistory}</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="block">
+      <h2>Runtime</h2>
+      <ul class="checks">
+        <li id="chk-kokori">Kokori on :3000 · <em>checking…</em></li>
+        <li id="chk-sr">SpeechRecognition · <em>checking…</em></li>
+      </ul>
+    </section>
+  </main>
+  <script>
+    function set(id: string, ok: boolean, text: string): void {
+      const el = document.getElementById(id); if (!el) return;
+      el.innerHTML = el.textContent!.split("·")[0] + "· <em class=\"" + (ok ? "ok" : "bad") + "\">" + text + "</em>";
+    }
+    fetch("http://localhost:3000/generate", { method: "OPTIONS" })
+      .then(() => set("chk-kokori", true, "reachable"))
+      .catch(() => set("chk-kokori", false, "OFFLINE"));
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    set("chk-sr", !!SR, SR ? "supported" : "not supported");
+  </script>
+</Layout>
+<style>
+.audit{max-width:980px;margin:60px auto;padding:0 24px;color:var(--ink);font:500 14px/1.6 var(--body)}
+.audit h1{font:700 32px/1.1 var(--type);margin:0 0 8px}
+.block{margin:36px 0;padding:20px;background:var(--panel);border:1px solid var(--line)}
+.block h2{font:700 14px/1 var(--type);letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px;color:var(--accent)}
+table{width:100%;border-collapse:collapse;font:500 13px/1.5 var(--mono)}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+.checks{list-style:none;padding:0;margin:0;font:500 13px/1.8 var(--mono)}
+.checks em{font-style:normal;color:var(--muted)}
+.checks em.ok{color:var(--accent-good)}.checks em.bad{color:var(--accent-bad)}
+</style>

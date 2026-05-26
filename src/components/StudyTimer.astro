@@ -1,0 +1,33 @@
+---
+// Study timer — TWO clocks:
+//   • Session clock — counts UP while running, persists today's seconds.
+//   • Lifetime clock — total seconds studied across all days.
+// START/PAUSE toggle; RESET only clears today's session.
+// Streak ticks whenever today's session crosses 5 minutes.
+---
+<div class="study-timer" id="study-timer">
+  <div class="st-label">study</div>
+  <div class="st-clocks">
+    <div class="st-clock" id="st-clock" title="Today's study time">00:00</div>
+    <div class="st-total" id="st-total" title="Lifetime study time">total 0h</div>
+  </div>
+  <div class="st-buttons">
+    <button class="st-btn" id="st-go" title="Start / Pause (S)">▶</button>
+    <button class="st-btn" id="st-rs" title="Reset today">↺</button>
+  </div>
+</div>
+
+<style>
+.study-timer{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(0,212,255,.05);border:1px solid color-mix(in srgb,#00d4ff 30%,transparent);border-radius:2px}
+.st-label{font:700 8px/1 var(--type);letter-spacing:.32em;color:var(--dim);text-transform:uppercase}
+.st-clocks{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
+.st-clock{font:700 14px/1 var(--mono);color:var(--accent);font-variant-numeric:tabular-nums;min-width:54px;text-align:left}
+.st-clock.running{animation:tick 1s steps(2) infinite}
+.st-clock.milestone{color:var(--accent-good)}
+.st-total{font:600 9px/1.3 var(--mono);color:var(--dim);font-variant-numeric:tabular-nums;margin-top:2px;letter-spacing:.04em}
+@keyframes tick{50%{opacity:.55}}
+.st-buttons{display:flex;gap:3px}
+.st-btn{background:transparent;color:var(--muted);border:1px solid var(--line);font:600 10px/1 var(--mono);padding:3px 6px;cursor:pointer;border-radius:2px;transition:all .12s ease}
+.st-btn:hover{color:var(--accent);border-color:var(--accent)}
+.st-btn.running{color:var(--accent-good);border-color:var(--accent-good)}
+</style>

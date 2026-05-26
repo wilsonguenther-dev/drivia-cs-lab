@@ -1,0 +1,75 @@
+---
+// SpeakBack v2 — sentence-grade elocution.
+//
+// • Accepts MULTIPLE target options per topic (term / definition / formal /
+//   plain-English / pronunciation). User can pick which they want to read.
+// • Uses continuous SpeechRecognition so long sentences don't get truncated
+//   at the first pause.
+// • Word-aware scoring: Jaccard overlap × order similarity, so paraphrases
+//   score reasonably and a missed connector doesn't tank a 30-word read.
+// • Highlights word-by-word: green = matched, red = wrong, gray = missed.
+//
+// Targets is an array of { label, text }. The first is the default.
+export interface SpeakBackTarget { label: string; text: string; }
+interface Props {
+  index: number;
+  targets: SpeakBackTarget[];
+}
+const { index, targets } = Astro.props;
+const json = JSON.stringify(targets);
+---
+<div class="speak-back" id={`sb-${index}`} data-idx={index}>
+  <script type="application/json" id={`sb-targets-${index}`} set:html={json}></script>
+
+  <div class="sb-head">
+    <div class="sb-label">SAY IT BACK · ELOCUTION</div>
+    <div class="sb-picker" id={`sb-picker-${index}`}>
+      {targets.map((t, i) => (
+        <button class={`sb-pick ${i === 0 ? "active" : ""}`} data-act="sb-pick" data-idx={index} data-pick={i}>{t.label}</button>
+      ))}
+    </div>
+  </div>
+
+  <div class="sb-target" id={`sb-target-${index}`}>{targets[0]?.text}</div>
+
+  <div class="sb-row">
+    <button class="sb-btn primary" data-act="sb-listen" data-idx={index}>🎤 SAY IT BACK</button>
+    <button class="sb-btn" data-act="sb-hear" data-idx={index}>🔊 HEAR IT FIRST</button>
+  </div>
+
+  <div class="sb-result" id={`sb-r-${index}`} aria-live="polite">
+    Tap <b>Hear it first</b> to listen, then <b>Say it back</b>. Speak naturally — we score how closely you match.
+  </div>
+  <div class="sb-meter" id={`sb-m-${index}`} hidden>
+    <div class="sb-bar"><div class="sb-fill" id={`sb-f-${index}`}></div></div>
+    <div class="sb-score" id={`sb-s-${index}`}>—</div>
+    <div class="sb-best" id={`sb-b-${index}`}></div>
+  </div>
+</div>
+
+<style>
+.speak-back{padding:16px 18px;background:rgba(244,114,182,.05);border:1px solid color-mix(in srgb,var(--accent-warm) 28%,transparent);border-left:3px solid var(--accent-warm);margin-top:16px}
+.sb-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.sb-label{font:700 10px/1 var(--type);letter-spacing:.22em;color:var(--accent-warm);text-transform:uppercase}
+.sb-picker{display:flex;gap:4px;flex-wrap:wrap}
+.sb-pick{background:transparent;color:var(--muted);border:1px solid var(--line);font:600 9px/1 var(--mono);letter-spacing:.08em;padding:5px 8px;cursor:pointer;text-transform:uppercase}
+.sb-pick.active{color:var(--accent-warm);border-color:var(--accent-warm);background:rgba(244,114,182,.08)}
+.sb-pick:hover{color:var(--accent-warm)}
+.sb-target{padding:10px 12px;background:rgba(255,255,255,.02);border:1px dashed var(--line);font:500 14px/1.5 var(--body);color:var(--ink);margin-bottom:10px;font-style:italic}
+.sb-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sb-btn{background:transparent;color:var(--accent-warm);border:1px solid color-mix(in srgb,var(--accent-warm) 50%,transparent);font:700 11px/1 var(--mono);letter-spacing:.08em;padding:8px 14px;cursor:pointer;text-transform:uppercase;transition:all .12s ease}
+.sb-btn:hover{background:rgba(244,114,182,.08);border-color:var(--accent-warm)}
+.sb-btn.primary{background:rgba(244,114,182,.10)}
+.sb-btn.recording{background:var(--accent-warm);color:#000;animation:rec-pulse 1s steps(2) infinite}
+@keyframes rec-pulse{50%{opacity:.6}}
+.sb-result{margin-top:10px;font:500 13px/1.55 var(--body);color:var(--muted)}
+.sb-result.heard{color:var(--ink)}
+.sb-result .word-ok{color:var(--accent-good);font-weight:600}
+.sb-result .word-bad{color:var(--accent-bad);text-decoration:line-through;opacity:.7}
+.sb-result .word-missed{color:var(--accent-warn);font-style:italic}
+.sb-meter{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.sb-bar{flex:1;min-width:140px;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.sb-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent-bad),var(--accent-warn),var(--accent-good));transition:width .35s ease}
+.sb-score{font:700 14px/1 var(--mono);min-width:54px;text-align:right;color:var(--accent-warm);font-variant-numeric:tabular-nums}
+.sb-best{font:500 10px/1 var(--mono);color:var(--dim);letter-spacing:.08em}
+</style>

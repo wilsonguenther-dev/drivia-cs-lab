@@ -1,0 +1,37 @@
+---
+import type { Paper } from "../data/cs";
+interface Props { papers?: Paper[]; reading?: string[]; }
+const { papers, reading } = Astro.props;
+const hasAny = (papers && papers.length) || (reading && reading.length);
+---
+{hasAny && (
+  <div class="cite-block">
+    {papers && papers.length > 0 && (
+      <div class="cite-row">
+        <span class="cite-lbl">Papers</span>
+        <div class="cite-chips">
+          {papers.map((p) => p.url
+            ? <a class="chip" href={p.url} target="_blank" rel="noopener noreferrer">{p.author} {p.year} — {p.title} ↗</a>
+            : <span class="chip">{p.author} {p.year} — {p.title}</span>
+          )}
+        </div>
+      </div>
+    )}
+    {reading && reading.length > 0 && (
+      <div class="cite-row">
+        <span class="cite-lbl">Reading</span>
+        <div class="cite-chips">{reading.map((r) => <span class="chip muted">{r}</span>)}</div>
+      </div>
+    )}
+  </div>
+)}
+<style>
+.cite-block{margin-top:14px;padding:12px 14px;background:rgba(0,212,255,.03);border:1px solid color-mix(in srgb,var(--accent) 18%,transparent)}
+.cite-row{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;padding:4px 0}
+.cite-row + .cite-row{border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+.cite-lbl{font:700 9px/1 var(--type);letter-spacing:.22em;color:var(--accent);text-transform:uppercase;min-width:64px}
+.cite-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1}
+.chip{display:inline-flex;align-items:center;padding:3px 8px;font:500 11px/1.3 var(--mono);color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);text-decoration:none}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.muted{color:var(--muted);background:transparent}
+</style>

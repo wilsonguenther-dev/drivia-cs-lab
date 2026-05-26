@@ -1,0 +1,24 @@
+---
+import type { VideoRef } from "../data/cs";
+interface Props { videos: readonly VideoRef[]; }
+const { videos } = Astro.props;
+---
+
+<div class="vids">
+  {videos.map((v) => (
+    <a class="vid" href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer">
+      <div class="vid-thumb">
+        <img
+          src={`https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`}
+          alt=""
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          onerror={`this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg'`}
+        />
+      </div>
+      <div class="vid-meta">{v.source}</div>
+      <div class="vid-title">{v.title}</div>
+      <div class="vid-src">▶ youtube.com/watch?v={v.id}</div>
+    </a>
+  ))}
+</div>
